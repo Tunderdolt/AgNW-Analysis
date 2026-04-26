@@ -33,7 +33,7 @@ The key steps are:
 | `AgNW_Analyser.bat` | Windows double-click launcher — checks/installs dependencies, then runs the batch analysis |
 | `AgNW_Analyser.spec` | PyInstaller spec file for building a standalone Windows exe |
 | `hook_tcl.py` | PyInstaller runtime hook — sets TCL/TK paths inside the frozen exe |
-| `AgNW_Analyser_Guide.html` | Full user guide |
+| `AgNW_Analysis_Guide.html` | Full user guide |
 
 ---
 
@@ -54,6 +54,36 @@ For building the standalone exe:
 ```bash
 pip install pyinstaller
 ```
+
+---
+
+## Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/<your-username>/<repo-name>.git
+cd <repo-name>
+```
+
+2. Install dependencies:
+```bash
+pip install tifffile pillow numpy scipy scikit-image matplotlib opencv-python
+```
+
+3. All scripts expect to be run from the repository root directory where they all sit together:
+```
+AgNW-Analysis/
+├── nanowire_analysis.py
+├── run_batch_analysis.py
+├── summarise_statistics.py
+├── AgNW_Analyser_GUI.py
+├── AgNW_Analyser.bat
+├── AgNW_Analyser.spec
+├── hook_tcl.py
+└── AgNW_Analysis_Guide.html
+```
+
+> **Important:** `run_batch_analysis.py` and `AgNW_Analyser_GUI.py` both expect `nanowire_analysis.py` to be in the same directory. Do not move scripts into subdirectories.
 
 ---
 
@@ -84,6 +114,9 @@ python run_batch_analysis.py /path/to/database --dry_run
 python summarise_statistics.py all_samples_summary.csv --output stats.xlsx
 ```
 
+### Windows — double-click launcher
+Place all scripts in the same folder, then double-click `AgNW_Analyser.bat`. It will check for missing packages, offer to install them, then prompt for a database folder.
+
 ---
 
 ## Folder naming convention (batch runner)
@@ -107,6 +140,10 @@ Images within each folder should follow:
 ```
 
 where `sample` is one of A–G, Alpha, Beta, Gamma and `magnification` is e.g. `1000x`, `50x`, `100x`. Order and separators are flexible.
+
+Two folders are always skipped regardless of name:
+- Any folder containing `Absorbance` 
+- Any folder containing `Initial Report`
 
 ---
 
@@ -148,15 +185,43 @@ The batch runner additionally produces:
 
 ## Building the standalone exe (Windows)
 
+Before building, update the hardcoded paths in `AgNW_Analyser.spec` to match your Python installation. The lines to change are near the top of the spec file:
+
+```python
+# Change this to your Python/conda environment root
+CONDA = r"C:\Users\<your-username>\path\to\python\env"
+```
+
+And the explicit DLL paths below it:
+```python
+r"C:\Users\<your-username>\path\to\env\DLLs\_tkinter.pyd"
+r"C:\Users\<your-username>\path\to\env\Library\bin\tcl86t.dll"
+r"C:\Users\<your-username>\path\to\env\Library\bin\tk86t.dll"
+```
+
+To find these on your machine:
 ```powershell
-# Set TCL/TK paths for conda Python (adjust to your environment)
-$env:TCL_LIBRARY = "C:\Users\<user>\.julia\conda\3\x86_64\Library\lib\tcl8.6"
-$env:TK_LIBRARY  = "C:\Users\<user>\.julia\conda\3\x86_64\Library\lib\tk8.6"
+# Find _tkinter.pyd
+Get-ChildItem -Path "C:\Users\<you>" -Recurse -Filter "_tkinter.pyd" -ErrorAction SilentlyContinue | Select-Object FullName
+
+# Find tcl/tk DLLs
+Get-ChildItem -Path "C:\Users\<you>" -Recurse -Filter "tcl86*.dll" -ErrorAction SilentlyContinue | Select-Object FullName
+```
+
+Then find the `tcl8.6` data directory:
+```powershell
+Test-Path "C:\path\to\env\Library\lib\tcl8.6"
+```
+
+Once the paths are updated, set the TCL/TK environment variables and build:
+```powershell
+$env:TCL_LIBRARY = "C:\path\to\env\Library\lib\tcl8.6"
+$env:TK_LIBRARY  = "C:\path\to\env\Library\lib\tk8.6"
 
 & "C:\path\to\python.exe" -m PyInstaller AgNW_Analyser.spec
 ```
 
-The exe appears in `dist/AgNW_Analyser.exe`. Note the `CONDA` path and TCL/TK paths in `AgNW_Analyser.spec` are hardcoded to the build machine and will need updating for a different environment.
+The exe appears in `dist/AgNW_Analyser.exe`.
 
 ---
 
@@ -170,6 +235,6 @@ Diameter values are apparent widths measured by FWHM of the greyscale intensity 
 
 Wire orientation R (mean resultant length) is computed using circular statistics on doubled angles to account for axial symmetry:
 
-**R = √( mean(cos 2θ)² + mean(sin 2θ)² )**
+**R = sqrt( mean(cos 2theta)^2 + mean(sin 2theta)^2 )**
 
-R = 0 is fully isotropic; R = 1 is perfectly aligned. The orientation angle µ is the mean preferred direction (0–180°).
+R = 0 is fully isotropic; R = 1 is perfectly aligned. The orientation angle mu is the mean preferred direction (0-180 degrees).
