@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgNW Analysis Pipeline — User Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --ink:     #1a1714;
+    --warm:    #f5f0e8;
+    --cream:   #faf7f2;
+    --accent:  #8b4a2f;
+    --accent2: #3d6b5e;
+    --muted:   #7a7068;
+    --rule:    #d6cfc4;
+    --code-bg: #1e1c1a;
+    --code-fg: #e8dcc8;
+    --tag-bg:  #e8f0ed;
+    --tag-fg:  #2c5448;
+    --warn-bg: #fdf3ec;
+    --warn-brd:#c97840;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.72;
+    color: var(--ink);
+    background: var(--cream);
+  }
+
+  /* ── LAYOUT ─────────────────────────── */
+  .wrapper {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 40px 100px;
+  }
+
+  /* ── HEADER ─────────────────────────── */
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 60px 0 32px;
+    margin-bottom: 56px;
+  }
+  header .eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  header h1 {
+    font-size: 2.8rem;
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  header h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  header .subtitle {
+    margin-top: 14px;
+    font-size: 1.05rem;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 600px;
+  }
+  .meta-row {
+    display: flex;
+    gap: 28px;
+    margin-top: 28px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .meta-row span strong { color: var(--ink); font-weight: 500; }
+
+  /* ── TOC ────────────────────────────── */
+  .toc {
+    background: var(--warm);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 28px 36px;
+    margin-bottom: 60px;
+  }
+  .toc h2 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 32px;
+  }
+  .toc ol li { counter-increment: toc; display: flex; align-items: baseline; gap: 8px; }
+  .toc ol li::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 24px;
+  }
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 0.95rem;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .toc a:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ── SECTIONS ───────────────────────── */
+  section { margin-bottom: 64px; }
+  section + section { padding-top: 0; }
+
+  h2 {
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  h2 .sec-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--warm);
+    border: 1px solid var(--rule);
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 32px 0 10px;
+    color: var(--ink);
+  }
+  h4 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 24px 0 8px;
+  }
+
+  p { margin-bottom: 14px; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+
+  a { color: var(--accent2); text-decoration: underline; text-underline-offset: 2px; }
+
+  /* ── CODE ───────────────────────────── */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82em;
+    background: var(--warm);
+    border: 1px solid var(--rule);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    padding: 22px 26px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 16px 0 20px;
+    position: relative;
+  }
+  pre .comment { color: #7a7060; font-style: italic; }
+  pre .flag    { color: #85b89a; }
+  pre .val     { color: #c9a87c; }
+  pre .cmd     { color: #e8c56a; }
+  pre .prompt  { color: #5a7a6a; user-select: none; }
+
+  /* ── CALLOUTS ───────────────────────── */
+  .callout {
+    border-left: 3px solid var(--accent2);
+    background: #edf4f1;
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.95rem;
+  }
+  .callout.warn {
+    border-left-color: var(--warn-brd);
+    background: var(--warn-bg);
+  }
+  .callout .callout-head {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 6px;
+  }
+  .callout.warn .callout-head { color: var(--warn-brd); }
+
+  /* ── TABLES ─────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 16px 0 24px;
+  }
+  thead tr { border-bottom: 2px solid var(--ink); }
+  tbody tr { border-bottom: 1px solid var(--rule); }
+  tbody tr:last-child { border-bottom: none; }
+  th {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px 10px;
+  }
+  td { padding: 10px 12px; vertical-align: top; }
+  td code { font-size: 0.78em; }
+  tbody tr:nth-child(even) { background: var(--warm); }
+
+  /* ── FILE TREE ──────────────────────── */
+  .filetree {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.83rem;
+    background: var(--warm);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 20px 24px;
+    line-height: 1.8;
+    margin: 16px 0 20px;
+  }
+  .filetree .dir  { color: var(--accent2); font-weight: 500; }
+  .filetree .file { color: var(--ink); }
+  .filetree .desc { color: var(--muted); font-style: italic; font-size: 0.78rem; }
+
+  /* ── PIPELINE DIAGRAM ───────────────── */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0 28px;
+    position: relative;
+  }
+  .pipeline::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 36px;
+    bottom: 36px;
+    width: 2px;
+    background: var(--rule);
+  }
+  .step {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    padding: 12px 0;
+    position: relative;
+  }
+  .step-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .step-body { padding-top: 6px; }
+  .step-title { font-weight: 600; font-size: 1rem; margin-bottom: 2px; }
+  .step-desc  { font-size: 0.9rem; color: var(--muted); }
+
+  /* ── OUTPUT CARDS ───────────────────── */
+  .output-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 16px 0 24px;
+  }
+  .output-card {
+    background: var(--warm);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .output-card .filename {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .output-card .filename::before {
+    content: '→';
+    color: var(--muted);
+  }
+  .output-card p { font-size: 0.88rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+  /* ── TAG ────────────────────────────── */
+  .tag {
+    display: inline-block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: var(--tag-bg);
+    color: var(--tag-fg);
+    letter-spacing: 0.05em;
+  }
+  .tag.orange { background: #fdeee0; color: #8b4a2f; }
+
+  /* ── FOOTER ─────────────────────────── */
+  footer {
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 1px solid var(--rule);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  @media print {
+    .toc ol { grid-template-columns: 1fr; }
+    pre { font-size: 0.72rem; }
+    .output-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<header>
+  <div class="eyebrow">Research Software Documentation</div>
+  <h1>AgNW Analysis<br><em>Pipeline User Guide</em></h1>
+  <p class="subtitle">
+    Automated measurement of silver nanowire length, diameter, aspect ratio,
+    and orientation from SEM and VLM micrographs.
+  </p>
+  <div class="meta-row">
+    <span><strong>Script</strong> nanowire_analysis.py</span>
+    <span><strong>Version</strong> 16</span>
+    <span><strong>Python</strong> ≥ 3.9</span>
+    <span><strong>Reference</strong> Moradpur-Tari et al., Ultramicroscopy 261 (2024)</span>
+  </div>
+</header>
+
+<!-- ══ TOC ═════════════════════════════════════════════════════════ -->
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#install">Installation</a></li>
+    <li><a href="#quickstart">Quick start</a></li>
+    <li><a href="#inputs">Supported inputs</a></li>
+    <li><a href="#outputs">Output files</a></li>
+    <li><a href="#pipeline">How it works</a></li>
+    <li><a href="#parameters">Key parameters</a></li>
+    <li><a href="#recipes">Common recipes</a></li>
+    <li><a href="#csv">CSV field reference</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+    <li><a href="#notes">Physical notes</a></li>
+  </ol>
+</nav>
+
+<!-- ══ SECTION 1 ═══════════════════════════════════════════════════ -->
+<section id="install">
+  <h2><span class="sec-num">01</span>Installation</h2>
+
+  <p>The script has no special build step — install the Python dependencies
+  and run directly.</p>
+
+  <h3>Dependencies</h3>
+  <pre><span class="prompt">$</span> pip install tifffile pillow numpy scipy scikit-image matplotlib opencv-python-headless</pre>
+
+  <div class="callout">
+    <div class="callout-head">Conda users</div>
+    <code>conda install -c conda-forge tifffile pillow numpy scipy scikit-image matplotlib opencv</code>
+  </div>
+
+  <h3>Verify</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py --help</pre>
+  <p>If you see the argument list, the installation succeeded.</p>
+
+  <h3>Tested environments</h3>
+  <table>
+    <thead><tr><th>OS</th><th>Python</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Linux (Ubuntu 22+)</td><td>3.10, 3.11</td><td>Primary development platform</td></tr>
+      <tr><td>macOS (Apple Silicon)</td><td>3.11</td><td>Use <code>opencv-python</code> not headless variant</td></tr>
+      <tr><td>Windows 10/11</td><td>3.10</td><td>Run from Anaconda Prompt or WSL</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══ SECTION 2 ═══════════════════════════════════════════════════ -->
+<section id="quickstart">
+  <h2><span class="sec-num">02</span>Quick start</h2>
+
+  <h3>Process a single SEM image</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py <span class="val">F_1000x.tif</span> <span class="flag">--output_dir</span> results/</pre>
+
+  <h3>Process a whole folder</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py <span class="flag">--input_dir</span> <span class="val">./images/</span> <span class="flag">--output_dir</span> results/</pre>
+
+  <h3>Mix SEM and VLM in one run</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py <span class="val">*.tif</span> <span class="val">*.png</span> <span class="flag">--output_dir</span> results/</pre>
+
+  <p>The script auto-detects image type by extension:
+  <code>.tif</code>/<code>.tiff</code> → SEM pipeline,
+  <code>.png</code>/<code>.jpg</code> → VLM pipeline.
+  Results appear in the output directory immediately after processing.</p>
+
+  <div class="callout warn">
+    <div class="callout-head">Important — SEM images</div>
+    SEM <code>.tif</code> files must contain the standard instrument metadata bar
+    at the bottom (with scale bar and text annotation). The script reads the scale
+    bar automatically. If the scale bar is missing or non-standard, set
+    <code>--fallback_nm_per_px</code> manually.
+  </div>
+</section>
+
+<!-- ══ SECTION 3 ═══════════════════════════════════════════════════ -->
+<section id="inputs">
+  <h2><span class="sec-num">03</span>Supported inputs</h2>
+
+  <table>
+    <thead><tr><th>Mode</th><th>Format</th><th>Magnification</th><th>What is measured</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tag">SEM</span></td>
+        <td><code>.tif</code> / <code>.tiff</code></td>
+        <td>Any (scale bar auto-read)</td>
+        <td>Length, diameter, aspect ratio, orientation</td>
+      </tr>
+      <tr>
+        <td><span class="tag">VLM</span></td>
+        <td><code>.png</code> / <code>.jpg</code></td>
+        <td>50× or 100× (mag auto-read from filename)</td>
+        <td>Length, orientation</td>
+      </tr>
+      <tr>
+        <td><span class="tag orange">Coverage</span></td>
+        <td><code>.png</code></td>
+        <td>20× (sub-pixel wires)</td>
+        <td>Network fill %, orientation anisotropy</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>VLM filename convention</h3>
+  <p>The VLM scale calibration is read from the filename. Include the magnification
+  as <code>50x</code> or <code>100x</code> anywhere in the filename:</p>
+  <pre><span class="comment"># Good — magnification detected automatically</span>
+50x_SampleC_run2.png
+100x_E_2-2_clean.png
+my_sample_100x_second_pass.png
+
+<span class="comment"># Fallback — set scale manually if filename has no mag</span>
+<span class="prompt">$</span> python nanowire_analysis.py image.png <span class="flag">--vlm_scale_um</span> <span class="val">10.0</span></pre>
+
+  <p>20× images are detected by their calibrated nm/px value exceeding 300 nm/px
+  and are routed to the coverage mode automatically.</p>
+</section>
+
+<!-- ══ SECTION 4 ═══════════════════════════════════════════════════ -->
+<section id="outputs">
+  <h2><span class="sec-num">04</span>Output files</h2>
+
+  <p>Each image produces several files in the output directory. All filenames
+  are prefixed with the input image stem.</p>
+
+  <div class="output-grid">
+    <div class="output-card">
+      <div class="filename">{name}_all_wires.csv</div>
+      <p>Per-wire measurements. One row per qualified wire. The primary data file for analysis.</p>
+    </div>
+    <div class="output-card">
+      <div class="filename">{name}_overlay.png</div>
+      <p>Colour-coded overlay on the original image. Wire colour = length (plasma colourmap: blue → yellow). Only a random sample of up to 300 wires is drawn for clarity.</p>
+    </div>
+    <div class="output-card">
+      <div class="filename">{name}_distributions.png</div>
+      <p>Distribution plots: length histogram + KDE, diameter (SEM only), aspect ratio (SEM only), and orientation rose plot.</p>
+    </div>
+    <div class="output-card">
+      <div class="filename">{name}_raw_skeleton.png</div>
+      <p>Debug image: skeleton pixels in grey, endpoints in green, junctions in red. Useful for diagnosing segmentation issues.</p>
+    </div>
+    <div class="output-card">
+      <div class="filename">all_images_summary.csv</div>
+      <p>Concatenated per-wire table for all images in a single run. Convenient for cross-sample statistics.</p>
+    </div>
+    <div class="output-card">
+      <div class="filename">{name}_coverage.png</div>
+      <p>Coverage mode only (20× VLM). Binary network mask with fill percentage annotated.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-head">Only complete wires count</div>
+    Wires whose skeleton coordinates touch the 0.5 µm border zone are excluded from
+    all statistics and labelled <code>truncated=True</code> in the CSV. The printed
+    counts and distribution plots use only complete wires.
+  </div>
+</section>
+
+<!-- ══ SECTION 5 ═══════════════════════════════════════════════════ -->
+<section id="pipeline">
+  <h2><span class="sec-num">05</span>How it works</h2>
+
+  <div class="pipeline">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Scale bar detection</div>
+        <div class="step-desc">Finds the SEM annotation bar (dark band at the bottom of the
+        image) and locates the white scale-bar line within it to compute nm/pixel.
+        VLM images use a lookup table calibrated per magnification.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Frangi vesselness preprocessing</div>
+        <div class="step-desc">A multi-scale Frangi filter (σ = 2–4 px) enhances tubular
+        structures. This produces a much cleaner binary than simple thresholding,
+        especially at wire crossings where contrast is low.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Skeletonisation &amp; junction labelling</div>
+        <div class="step-desc">Zhang skeletonisation reduces wires to single-pixel paths.
+        Each pixel is labelled by its Nano1D neighbour count: N=1 tail, N=2 section,
+        N≥3 junction. Gap bridging reconnects small Frangi breaks.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Nano1D recall-vector tracing</div>
+        <div class="step-desc">Starting from every tail pixel, the tracer follows the
+        skeleton pixel-by-pixel. At each junction it computes a recall vector from the
+        last 30 pixels of travel and selects the arm most aligned with that direction.
+        This handles wire crossings far better than segment-level methods.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Post-tracing merge pass</div>
+        <div class="step-desc">The tracer sometimes picks the wrong arm at ambiguous
+        junctions, splitting one wire into two fragments. The merge pass finds fragment
+        endpoint pairs where both endpoints are within 300 nm of a junction pixel
+        (confirming they were terminated by a junction, not a natural wire tip),
+        checks direction alignment, and greedily reassembles them.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-title">Quality filters &amp; border exclusion</div>
+        <div class="step-desc">Wires are rejected if: chord-deviation ratio &gt; 0.40
+        (V-kinks), sinuosity &gt; 1.50 (near-loops), length &lt; minimum threshold,
+        or any skeleton coordinate falls inside the 0.5 µm border zone.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <div class="step-title">Diameter measurement (SEM only)</div>
+        <div class="step-desc">At 12 evenly-spaced points along each wire, a greyscale
+        profile is taken perpendicular to the local tangent. The FWHM of the
+        intensity peak gives the apparent wire diameter. Reported values are
+        <em>not</em> PSF-deconvolved.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 6 ═══════════════════════════════════════════════════ -->
+<section id="parameters">
+  <h2><span class="sec-num">06</span>Key parameters</h2>
+
+  <p>All parameters have sensible defaults for 1000× SEM and 50/100× VLM images
+  at 25 nm/px. Only change them if you're seeing specific problems.</p>
+
+  <h3>Minimum length thresholds</h3>
+  <table>
+    <thead><tr><th>Flag</th><th>Default</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><code>--min_len_um</code></td><td>5.0 µm</td><td>SEM: discard wires shorter than this</td></tr>
+      <tr><td><code>--vlm_min_len_um</code></td><td>10.0 µm</td><td>VLM: discard wires shorter than this</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Shape quality filters</h3>
+  <table>
+    <thead><tr><th>Flag</th><th>Default</th><th>What it controls</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>--max_chord_ratio</code></td><td>0.40</td>
+        <td>Rejects V-kinks. Ratio = maximum perpendicular deviation from the
+        endpoint chord ÷ chord length. Lower = stricter (try 0.25 for very
+        straight wire samples).</td>
+      </tr>
+      <tr>
+        <td><code>--max_sinuosity</code></td><td>1.50</td>
+        <td>Rejects near-loop traces. Sinuosity = arc length ÷ chord length.
+        Physical S-curves typically have sinuosity &lt; 1.3.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Merge pass</h3>
+  <table>
+    <thead><tr><th>Flag</th><th>Default</th><th>What it controls</th></tr></thead>
+    <tbody>
+      <tr><td><code>--no_merge</code></td><td>off</td><td>Disable the merge pass entirely (fastest, fewest wires)</td></tr>
+      <tr><td><code>--merge_gap_um</code></td><td>1.0 µm</td><td>Maximum endpoint separation for merge candidate pairs</td></tr>
+      <tr><td><code>--merge_angle</code></td><td>30°</td><td>Proximity cone: other endpoint must lie within this angle of the wire's heading</td></tr>
+      <tr><td><code>--merge_join_angle</code></td><td>25°</td><td>Maximum bending angle at the join point — prevents back-bending merges</td></tr>
+      <tr><td><code>--merge_chord</code></td><td>0.25</td><td>Chord filter applied to the merged wire (stricter than individual wire filter)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Border exclusion</h3>
+  <table>
+    <thead><tr><th>Flag</th><th>Default</th><th>What it controls</th></tr></thead>
+    <tbody>
+      <tr><td><code>--border_um</code></td><td>0.5 µm</td><td>Width of the exclusion zone around the image frame. Wires touching this zone are removed.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Diameter range (SEM only)</h3>
+  <table>
+    <thead><tr><th>Flag</th><th>Default</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>--min_diam_nm</code></td><td>10 nm</td><td>Wires with measured diameter below this are excluded</td></tr>
+      <tr><td><code>--max_diam_nm</code></td><td>400 nm</td><td>Wires with measured diameter above this are excluded (catches artefacts)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Tracing internals (rarely need changing)</h3>
+  <table>
+    <thead><tr><th>Flag</th><th>Default</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>--search_distance</code></td><td>30 px</td><td>Recall vector length. Increase for very straight wires; decrease for very curved samples.</td></tr>
+      <tr><td><code>--no_frangi</code></td><td>off</td><td>Fall back to CLAHE+Otsu binary (faster but worse at crossings)</td></tr>
+      <tr><td><code>--seed</code></td><td>42</td><td>Random seed for reproducible overlay sampling</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══ SECTION 7 ═══════════════════════════════════════════════════ -->
+<section id="recipes">
+  <h2><span class="sec-num">07</span>Common recipes</h2>
+
+  <h3>Run all SEM images in a folder, save to timestamped results</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py <span class="flag">--input_dir</span> <span class="val">./sem_images/</span> \
+    <span class="flag">--output_dir</span> <span class="val">results_$(date +%Y%m%d)/</span></pre>
+
+  <h3>Tighter kink rejection for very straight wire samples</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py sample.tif \
+    <span class="flag">--max_chord_ratio</span> <span class="val">0.20</span> <span class="flag">--merge_chord</span> <span class="val">0.15</span></pre>
+
+  <h3>Shorter wires (e.g. high-concentration sample)</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py sample.tif <span class="flag">--min_len_um</span> <span class="val">2.0</span></pre>
+
+  <h3>Disable merge pass for speed or comparison</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py sample.tif <span class="flag">--no_merge</span></pre>
+
+  <h3>Override VLM scale when filename has no magnification</h3>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py mystery_image.png <span class="flag">--vlm_scale_um</span> <span class="val">20.0</span>
+<span class="comment"># --vlm_scale_um is the physical length of the scale bar in µm</span></pre>
+
+  <h3>Post-filter CSV for very straight wires only</h3>
+  <pre><span class="comment"># In Python / pandas, after loading the CSV:</span>
+df = pd.read_csv(<span class="val">"F_1000x_all_wires.csv"</span>)
+clean = df[(df[<span class="val">"sinuosity"</span>] &lt; 1.2) &amp; (df[<span class="val">"truncated"</span>] == <span class="val">False</span>)]</pre>
+</section>
+
+<!-- ══ SECTION 8 ═══════════════════════════════════════════════════ -->
+<section id="csv">
+  <h2><span class="sec-num">08</span>CSV field reference</h2>
+
+  <p>Every <code>_all_wires.csv</code> file contains the following columns.
+  VLM files omit <code>diameter_nm</code> and <code>aspect_ratio</code>.</p>
+
+  <table>
+    <thead><tr><th>Column</th><th>Unit / type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>image</code></td><td>string</td><td>Source image filename stem</td></tr>
+      <tr><td><code>mode</code></td><td>SEM / VLM</td><td>Pipeline used</td></tr>
+      <tr><td><code>length_nm</code></td><td>nm</td><td>Arc length along skeleton</td></tr>
+      <tr><td><code>length_um</code></td><td>µm</td><td>Arc length (convenience)</td></tr>
+      <tr><td><code>diameter_nm</code></td><td>nm</td><td><em>SEM only.</em> Apparent FWHM diameter (not PSF-corrected)</td></tr>
+      <tr><td><code>aspect_ratio</code></td><td>dimensionless</td><td><em>SEM only.</em> length_nm ÷ diameter_nm</td></tr>
+      <tr><td><code>n_segments</code></td><td>integer</td><td>Number of fragments joined by the merge pass (1 = no merge)</td></tr>
+      <tr><td><code>ep_to_ep</code></td><td>True/False</td><td>True if the wire runs tail-to-tail (both endpoints are genuine wire tips rather than frame exits)</td></tr>
+      <tr><td><code>truncated</code></td><td>True/False</td><td>True if any part of the wire falls within the 0.5 µm border zone. These wires are excluded from statistics.</td></tr>
+      <tr><td><code>sinuosity</code></td><td>dimensionless</td><td>Arc length ÷ endpoint-to-endpoint chord. 1.0 = perfectly straight. Values above ~1.3 indicate significant curvature or noise.</td></tr>
+      <tr><td><code>wire_angle_deg</code></td><td>0–180°</td><td>Orientation of the wire's principal axis (PCA on coordinates)</td></tr>
+      <tr><td><code>centroid_row</code></td><td>px (skeleton)</td><td>Row of wire centroid in skeleton coordinates</td></tr>
+      <tr><td><code>centroid_col</code></td><td>px (skeleton)</td><td>Column of wire centroid in skeleton coordinates</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══ SECTION 9 ═══════════════════════════════════════════════════ -->
+<section id="troubleshooting">
+  <h2><span class="sec-num">09</span>Troubleshooting</h2>
+
+  <h3>Too few wires detected</h3>
+  <p>Check the raw skeleton image (<code>_raw_skeleton.png</code>). If skeleton coverage
+  looks sparse compared to what you can see in the original:</p>
+  <ul style="margin-left:24px;margin-bottom:16px;font-size:0.95rem;line-height:1.8">
+    <li>Lower the Frangi threshold: <code>--frangi_thresh 0.005</code></li>
+    <li>Lower the minimum length: <code>--min_len_um 3.0</code></li>
+    <li>Check the scale bar is being read correctly — see the "bar at row …" line in the output</li>
+  </ul>
+
+  <h3>Too many V-kink artefacts</h3>
+  <p>Lower the chord filter. This trades some valid curved wires for fewer kinks:</p>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py sample.tif <span class="flag">--max_chord_ratio</span> <span class="val">0.20</span></pre>
+
+  <h3>Wires joining across too large a gap</h3>
+  <p>Tighten the merge gap:</p>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py sample.tif <span class="flag">--merge_gap_um</span> <span class="val">0.5</span></pre>
+
+  <h3>Edge wires appearing along the image frame</h3>
+  <p>Increase the border exclusion zone:</p>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py sample.tif <span class="flag">--border_um</span> <span class="val">1.0</span></pre>
+
+  <h3>Scale bar not found (RuntimeError)</h3>
+  <p>Set the fallback scale manually using your microscope's recorded nm/px:</p>
+  <pre><span class="prompt">$</span> python nanowire_analysis.py sample.tif <span class="flag">--fallback_nm_per_px</span> <span class="val">30.0</span></pre>
+
+  <h3>VLM calibration warning</h3>
+  <p>If the script prints <code>[CORRECTED — calibrated from filename mag]</code>,
+  the auto-detected scale bar length disagreed with the filename magnification by
+  more than 20%. The filename-based calibration was used. Verify that the image
+  filename contains the correct magnification (e.g. <code>50x</code> or <code>100x</code>).</p>
+
+  <div class="callout warn">
+    <div class="callout-head">Diameter values are apparent widths</div>
+    The FWHM diameter measurement includes the electron-beam point-spread function
+    and is systematically larger than the true wire diameter. Do not compare raw
+    diameter values between instruments without PSF deconvolution. Use the values
+    for within-instrument comparisons and for aspect ratio calculations only.
+  </div>
+</section>
+
+<!-- ══ SECTION 10 ══════════════════════════════════════════════════ -->
+<section id="notes">
+  <h2><span class="sec-num">10</span>Physical notes</h2>
+
+  <h3>What "tip-to-tip" means</h3>
+  <p>A wire is classed as <strong>tip-to-tip</strong> (<code>ep_to_ep = True</code>)
+  when both of its endpoints in the skeleton are genuine N=1 tail pixels — i.e.
+  pixels with exactly one neighbour. This means the tracer started and ended at a
+  natural wire tip rather than at a frame edge or an unresolved junction. High
+  tip-to-tip rates (≥ 90%) indicate good segmentation and tracing quality.</p>
+
+  <h3>Orientation convention</h3>
+  <p>Wire angles are reported as the acute angle (0–180°) of the wire's principal
+  axis measured <strong>from the vertical</strong> (column direction). An angle
+  of 90° means a horizontal wire. The orientation rose plot uses 18 bins of 10°.
+  The mean resultant length <em>R</em> quantifies anisotropy: R = 0 is fully
+  isotropic; R = 1 is perfectly aligned. Rayleigh and χ² p-values test the null
+  hypothesis of uniform distribution.</p>
+
+  <h3>Coverage mode (20× VLM)</h3>
+  <p>At 20× magnification individual wires are sub-pixel (~366 nm/px) and cannot
+  be traced individually. The pipeline switches automatically to a binary
+  segmentation mode that reports the percentage of the field of view covered by
+  the wire network, together with an orientation estimate from segment PCA on the
+  binary skeleton.</p>
+
+  <h3>Why sinuosity matters</h3>
+  <p>Sinuosity (arc ÷ chord) measures how much a wire deviates from a straight
+  line. Physically real AgNWs are stiff and have sinuosities close to 1.0–1.15
+  even when naturally curved. Values above 1.3 often indicate a tracing artefact
+  (the recall vector picked a wrong arm and the trace meandered). The default
+  filter of 1.5 removes clear loops while keeping genuinely curved wires.</p>
+</section>
+
+<!-- ══ FOOTER ═══════════════════════════════════════════════════════ -->
+<footer>
+  <span>nanowire_analysis.py — v16 — Nano1D hybrid pipeline</span>
+  <span>Moradpur-Tari et al., Ultramicroscopy 261 (2024) 113949</span>
+</footer>
+
+</div>
+</body>
+</html>
