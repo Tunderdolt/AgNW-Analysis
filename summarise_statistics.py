@@ -123,45 +123,69 @@ def build_stats_table(input_csv: Path, min_mag: int = 20):
             except ValueError: pass
         return _extract_mag_num(r.get("image",""))
 
-    rows_ok  = [r for r in rows if _mag_num(r) >= min_mag]
-    n_bad    = len(rows) - len(rows_ok)
-    rows     = rows_ok
+    rows_ok = [r for r in rows if _mag_num(r) >= min_mag]
+    n_bad   = len(rows) - len(rows_ok)
+    rows    = rows_ok
 
     print(f"  Rows read             : {len(all_rows)}")
     print(f"  Truncated removed     : {n_trunc}")
     print(f"  Bad mag (<{min_mag}x) removed : {n_bad}")
     print(f"  Rows used             : {len(rows)}")
 
-    # Helpers to extract identity fields
-    def _sample(r):
-        return r["sample"] if is_batch and r.get("sample") else _extract_sample(r.get("image",""))
+    # Identity helpers
     def _modality(r):
         return r.get("modality", r.get("mode","?")).upper()
     def _date(r):
         return r.get("synthesis_date","").replace("_","-") if is_batch else ""
 
-    # Group by (date, sample, modality) — magnification intentionally excluded
+    # Warn about blank synthesis dates in batch CSVs
+    if is_batch:
+        blank = [r for r in rows if not _date(r).strip()]
+        if blank:
+            imgs = set(r.get("image","?") for r in blank)
+            print(f"  WARNING: {len(blank)} rows have a blank synthesis_date -- "
+                  f"they will share a group label.")
+            print(f"  Affected images: {', '.join(sorted(imgs))}")
+
+    # Grouping:
+    # Batch CSV  -> (synthesis_date, sample, modality): pools magnifications, keeps dates separate
+    # Single CSV -> (image, modality): keeps every image separate since there is no date to
+    #              disambiguate the same sample letter appearing in different experiments
     groups: dict = defaultdict(list)
     for r in rows:
-        groups[(_date(r), _sample(r), _modality(r))].append(r)
+        if is_batch:
+            key = (_date(r), r.get("sample",""), _modality(r))
+        else:
+            key = (r.get("image",""), _modality(r))
+        groups[key].append(r)
 
-    # Build output
+    # Output column names
     stat_suf = ["n","mean","sd","median","p10","p90","min","max"]
-    id_cols  = (["synthesis_date","sample","modality"] if is_batch
-                else ["sample","modality"])
-    out_fn   = (id_cols
-                + [f"length_um_{s}"    for s in stat_suf]
-                + [f"diameter_nm_{s}"  for s in stat_suf]
-                + [f"aspect_ratio_{s}" for s in stat_suf]
-                + ["orientation_mean_deg","orientation_R",
-                   "tip_to_tip_pct","n_wires_total","magnifications_included"])
+    if is_batch:
+        id_cols = ["synthesis_date","sample","modality"]
+    else:
+        id_cols = ["image","sample","modality"]
+
+    out_fn = (id_cols
+              + [f"length_um_{s}"    for s in stat_suf]
+              + [f"diameter_nm_{s}"  for s in stat_suf]
+              + [f"aspect_ratio_{s}" for s in stat_suf]
+              + ["orientation_mean_deg","orientation_R",
+                 "tip_to_tip_pct","n_wires_total","magnifications_included"])
     out_rows = []
 
-    for (date, sample, modality), grp in sorted(groups.items()):
+    for key, grp in sorted(groups.items()):
         row = {}
-        if is_batch: row["synthesis_date"] = date
-        row["sample"]   = sample
-        row["modality"] = modality
+        if is_batch:
+            date, sample, modality = key
+            row["synthesis_date"] = date
+            row["sample"]         = sample
+            row["modality"]       = modality
+        else:
+            image_name, modality = key
+            row["image"]    = image_name
+            row["sample"]   = _extract_sample(image_name)
+            row["modality"] = modality
 
         # Which magnifications were pooled
         mags = sorted({_mag_num(r) for r in grp if _mag_num(r) > 0})
@@ -173,7 +197,8 @@ def build_stats_table(input_csv: Path, min_mag: int = 20):
 
         # Diameter + aspect ratio (SEM only)
         if "SEM" in modality:
-            for col, prefix in [("diameter_nm","diameter_nm"),("aspect_ratio","aspect_ratio")]:
+            for col, prefix in [("diameter_nm","diameter_nm"),
+                                 ("aspect_ratio","aspect_ratio")]:
                 s = _stats(_floats(grp, col))
                 for sf in stat_suf: row[f"{prefix}_{sf}"] = s[sf]
         else:
@@ -195,13 +220,12 @@ def build_stats_table(input_csv: Path, min_mag: int = 20):
 
         # Tip-to-tip
         n_ep = sum(1 for r in grp if str(r.get("ep_to_ep","")).lower() in ("true","1"))
-        row["tip_to_tip_pct"]  = round(100.0 * n_ep / len(grp), 1)
-        row["n_wires_total"]   = len(grp)
+        row["tip_to_tip_pct"] = round(100.0 * n_ep / len(grp), 1)
+        row["n_wires_total"]  = len(grp)
 
         out_rows.append(row)
 
     return out_fn, out_rows
-
 
 # ---- CSV output --------------------------------------------------------------
 
